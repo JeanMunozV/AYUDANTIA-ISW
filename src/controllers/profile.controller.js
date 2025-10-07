@@ -1,7 +1,8 @@
-import { handleSuccess } from "../Handlers/responseHandlers.js";
+import { handleSuccess, handleErrorClient } from "../Handlers/responseHandlers.js";
 import { AppDataSource } from "../config/configDB.js";
 import { User } from "../entities/User.entity.js";
 import bcrypt from "bcrypt";
+import { userBodyValidation } from "../validations/user.validations.js";
 
 export function getPublicProfile(req, res) {
   handleSuccess(res, 200, "Perfil público obtenido exitosamente", {
@@ -18,11 +19,15 @@ export function getPrivateProfile(req, res) {
   });
 }
 
-
 export const updateProfile = async (req, res) => {
   try {
     const userId = req.user.id; // ID extraído del token JWT
     const { email, password } = req.body;
+
+    const { error } = userBodyValidation.validate(req.body);
+    if (error) {
+      return handleErrorClient(res, 400, "Parámetros inválidos", error.message);
+    }
 
     const userRepository = AppDataSource.getRepository(User);
     const user = await userRepository.findOneBy({ id: userId });
@@ -53,8 +58,7 @@ export const updateProfile = async (req, res) => {
     console.error("Error al actualizar perfil:", error);
     res.status(500).json({ message: "Error interno del servidor" });
   }
-}; 
-
+};
 
 export const deleteProfile = async (req, res) => {
   try {
